@@ -1,6 +1,6 @@
 /*
 * FILE: ntp.c
-* NOTE: socket网络编程学习，Client端程序
+* NOTE: socket网络编程学习，NTP时间获取程序
 *
 * TIME: 2021年11月13日00:05:39
 */
@@ -16,8 +16,7 @@
 
 #define   NTP_PORT   123
 #define   TIME_PORT  37
-//#define   NTP_SERVER_IP "210.72.145.44"
-#define   NTP_SERVER_IP  "10.154.8.200"
+#define   NTP_SERVER_IP  "cn.pool.ntp.org"
 
 #define   NTP_PORT_STR   "123"
 #define   NTPV1       "NTP/V1"
@@ -76,11 +75,12 @@ int construct_packet(char *packet)
 		memset(packet, 0, NTP_PCK_LEN);
 		port = NTP_PORT;
 		/*设置 16 字节的包头*/
-		version = protocol[6] - 0x30;
+		version = protocol[5] - 0x30;
 		tmp_wrd = htonl((LI << 30)|(version << 27) \
 			|(MODE << 24)|(STRATUM << 16)|(POLL << 8)|(PREC & 0xff));
 		memcpy(packet, &tmp_wrd, sizeof(tmp_wrd));
-		/*设置 Root Delay、 Root Dispersion 和 Reference Indentifier */
+	    
+    	/*设置 Root Delay、 Root Dispersion 和 Reference Indentifier */
 		tmp_wrd = htonl(1<<16);
 		memcpy(&packet[4], &tmp_wrd, sizeof(tmp_wrd));
 		memcpy(&packet[8], &tmp_wrd, sizeof(tmp_wrd));
@@ -172,7 +172,6 @@ int get_ntp_time(int sk, struct addrinfo *addr, struct ntp_packet *ret_time)
 	
 		return 1;
 	} /* end of if select */
-
    
 	
 	return 0;
