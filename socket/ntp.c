@@ -45,6 +45,7 @@ typedef struct _ntp_time
 	unsigned int fine;
 } ntp_time;
 
+/* NTP时钟同步报文 */
 struct ntp_packet
 {
 	unsigned char leap_ver_mode;
@@ -111,6 +112,8 @@ int get_ntp_time(int sk, struct addrinfo *addr, struct ntp_packet *ret_time)
 	struct timeval block_time;
 	char data[NTP_PCK_LEN * 8];
 	int packet_len, data_len = addr->ai_addrlen, count = 0, result, i,re;
+	
+	/* 组织请求报文 */
 	if (!(packet_len = construct_packet(data)))
 	{
 		return 0;
@@ -121,7 +124,7 @@ int get_ntp_time(int sk, struct addrinfo *addr, struct ntp_packet *ret_time)
 		perror("sendto");
 		return 0;
 	}
-	/*调用 select()函数，并设定超时时间为 1s*/
+	/*调用select()函数，并设定超时时间为10s*/
 	FD_ZERO(&pending_data);
 	FD_SET(sk, &pending_data);
 	block_time.tv_sec=10;
@@ -161,12 +164,12 @@ int get_ntp_time(int sk, struct addrinfo *addr, struct ntp_packet *ret_time)
 		ret_time->transmit_timestamp.coarse = ntohl(*(int*)&(data[40]));
 		ret_time->transmit_timestamp.fine = ntohl(*(int*)&(data[44]));
 
+        /* 将NTP时间戳转换为日期 */
 	    time_t currentTime = ret_time->transmit_timestamp.coarse - JAN_1970;
 	    struct tm CurlocalTime;
 	    localtime_r(&currentTime, &CurlocalTime);
-	    
-	    char dateTime[20];
-	    strftime(dateTime, 20, "%Y-%m-%dT%H:%M:%S", &CurlocalTime);
+	    char dateTime[30];
+	    strftime(dateTime, 30, "%Y-%m-%d %H:%M:%S %A", &CurlocalTime);
 
 	    printf("%s\n", dateTime);
 	
@@ -196,6 +199,7 @@ int main(int argc, char *argv[])
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
+	
 	/*调用 getaddrinfo()函数， 获取地址信息*/
 	rc = getaddrinfo(NTP_SERVER_IP, NTP_PORT_STR, &hints, &res);
 	if (rc != 0)
@@ -205,7 +209,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* 创建套接字 */
-	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol); //IPv4, 数据报套接字, UDP
 	if (sockfd <0 )
 	{
 		perror("socket");
